@@ -11,6 +11,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "Vibrato.h"
 
 //==============================================================================
 /**
@@ -58,4 +59,12 @@ public:
 private:
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (VibratoAudioProcessor)
+
+    CVibrato *m_pVibrato;
+
+    float m_fModAmplitudeInHz;
+    float m_fDepthInSecs;
+    float m_fMaxModAmpInSecs;
+
+    bool m_bypass;
 };

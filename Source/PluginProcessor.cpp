@@ -21,13 +21,20 @@ VibratoAudioProcessor::VibratoAudioProcessor()
                       #endif
                        .withOutput ("Output", AudioChannelSet::stereo(), true)
                      #endif
-                       )
+                       ),
 #endif
+        m_pVibrato(nullptr),
+        m_fDepthInSecs(0.f),
+        m_fMaxModAmpInSecs(0.f),
+        m_fModAmplitudeInHz(0.f)
 {
+    CVibrato::createInstance(m_pVibrato);
 }
 
 VibratoAudioProcessor::~VibratoAudioProcessor()
 {
+    m_pVibrato->resetInstance();
+    m_pVibrato = nullptr;
 }
 
 //==============================================================================
@@ -97,6 +104,8 @@ void VibratoAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBloc
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
+
+    m_pVibrato -> initInstance(m_fMaxModAmpInSecs, sampleRate, getTotalNumInputChannels());
 }
 
 void VibratoAudioProcessor::releaseResources()
@@ -150,12 +159,12 @@ void VibratoAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer
     // the samples and the outer loop is handling the channels.
     // Alternatively, you can process the samples with the channels
     // interleaved by keeping the same state.
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
-    {
-        auto* channelData = buffer.getWritePointer (channel);
 
-        // ..do something to the data...
-    }
+//    for (int channel = 0; channel < totalNumInputChannels; ++channel) {
+//        auto *channelData = buffer.getWritePointer(channel);
+//    }
+
+    m_pVibrato -> process(const_cast<float **> (buffer.getArrayOfReadPointers()), buffer.getArrayOfWritePointers(), buffer.getNumSamples());
 }
 
 //==============================================================================
