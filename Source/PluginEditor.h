@@ -11,6 +11,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <memory>
 #include "PluginProcessor.h"
 
 //==============================================================================
@@ -27,8 +28,14 @@ public:
     void resized() override;
 
 private:
-    // This reference is provided as a quick way for your editor to
-    // access the processor object that created it.
+    std::unique_ptr<Slider> m_pWidthKnob;
+    std::unique_ptr<Slider> m_pFreqKnob;
+    std::unique_ptr<Slider> m_pMixKnob;
+
+    std::unique_ptr<AudioProcessorValueTreeState::SliderAttachment> m_pWidthKnobAttachment;
+    std::unique_ptr<AudioProcessorValueTreeState::SliderAttachment> m_pFreqKnobAttachment;
+    std::unique_ptr<AudioProcessorValueTreeState::SliderAttachment> m_pMixKnobAttachment;
+
     VibratoAudioProcessor& processor;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (VibratoAudioProcessorEditor)

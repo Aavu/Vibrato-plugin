@@ -12,18 +12,26 @@
 #include "PluginEditor.h"
 
 //==============================================================================
-VibratoAudioProcessor::VibratoAudioProcessor()
+VibratoAudioProcessor::VibratoAudioProcessor() :
 #ifndef JucePlugin_PreferredChannelConfigurations
-     : AudioProcessor (BusesProperties()
+     AudioProcessor (BusesProperties()
                      #if ! JucePlugin_IsMidiEffect
                       #if ! JucePlugin_IsSynth
                        .withInput  ("Input",  AudioChannelSet::stereo(), true)
                       #endif
                        .withOutput ("Output", AudioChannelSet::stereo(), true)
                      #endif
-                       )
+                       ),
 #endif
+m_state(*this, nullptr, "Parameters", {
+    std::make_unique<AudioParameterFloat>("width", "Width", 0.0f, 100.0f, 0.0f),
+    std::make_unique<AudioParameterFloat>("freq", "LFO Frequency", 0.0f, 20.0f, 1.0f),
+    std::make_unique<AudioParameterFloat>("mix", "Mix", 0.0f, 100.0f, 100.0f)
+})
 {
+    m_pfWidth = m_state.getRawParameterValue("width");
+    m_pfFreq = m_state.getRawParameterValue("freq");
+    m_pfMix = m_state.getRawParameterValue("mix");
 }
 
 VibratoAudioProcessor::~VibratoAudioProcessor()
@@ -175,12 +183,24 @@ void VibratoAudioProcessor::getStateInformation (MemoryBlock& destData)
     // You should use this method to store your parameters in the memory block.
     // You could do that either as raw data, or use the XML or ValueTree classes
     // as intermediaries to make it easy to save and load complex data.
+    auto state = m_state.copyState();
+    std::unique_ptr<XmlElement> xml (state.createXml());
+    copyXmlToBinary(*xml, destData);
 }
 
 void VibratoAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     // You should use this method to restore your parameters from this memory block,
     // whose contents will have been created by the getStateInformation() call.
+    std::unique_ptr<XmlElement> xmlState (getXmlFromBinary (data, sizeInBytes));
+
+    if (xmlState != nullptr)
+        if (xmlState->hasTagName (m_state.state.getType()))
+            m_state.replaceState (ValueTree::fromXml (*xmlState));
+}
+
+AudioProcessorValueTreeState &VibratoAudioProcessor::getState() {
+    return m_state;
 }
 
 //==============================================================================

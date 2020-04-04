@@ -55,7 +55,12 @@ public:
     void getStateInformation (MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
+    AudioProcessorValueTreeState& getState();
 private:
+    AudioProcessorValueTreeState m_state;
+    std::atomic<float>* m_pfWidth    = nullptr;
+    std::atomic<float>* m_pfFreq     = nullptr;
+    std::atomic<float>* m_pfMix      = nullptr;
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (VibratoAudioProcessor)
 };
