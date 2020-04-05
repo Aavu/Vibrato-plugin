@@ -39,7 +39,12 @@ VibratoAudioProcessor::VibratoAudioProcessor() :
 
 VibratoAudioProcessor::~VibratoAudioProcessor()
 {
+    for (int i = 0; i < getTotalNumInputChannels(); i++)
+        delete[] m_ppfAudioData[i];
+
     delete[] m_ppfAudioData;
+    m_ppfAudioData = nullptr;
+
     CVibrato::destroyInstance(m_pCVibrato);
 }
 
