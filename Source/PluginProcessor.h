@@ -11,11 +11,13 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "Vibrato.h"
 
 //==============================================================================
 /**
 */
-class VibratoAudioProcessor  : public AudioProcessor
+class VibratoAudioProcessor  : public AudioProcessor,
+                               public AudioProcessorValueTreeState::Listener
 {
 public:
     //==============================================================================
@@ -57,10 +59,18 @@ public:
 
     AudioProcessorValueTreeState& getState();
 private:
+    void parameterChanged (const String& parameterID, float newValue) override;
+
+    const float m_fMaxModWidthInS;
+    std::atomic<float> m_fWidth;
+    std::atomic<float> m_fFreq;
+    std::atomic<bool> m_bBypass;
+
     AudioProcessorValueTreeState m_state;
-    std::atomic<float>* m_pfWidth    = nullptr;
-    std::atomic<float>* m_pfFreq     = nullptr;
-    std::atomic<float>* m_pfMix      = nullptr;
+
+    float** m_ppfAudioData = nullptr;
+
+    CVibrato* m_pCVibrato = nullptr;
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (VibratoAudioProcessor)
 };
