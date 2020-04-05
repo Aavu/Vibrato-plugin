@@ -22,8 +22,11 @@ VibratoAudioProcessorEditor::VibratoAudioProcessorEditor (VibratoAudioProcessor&
     m_pWidthKnob->setSliderStyle(Slider::Rotary);
     m_pFreqKnob->setSliderStyle(Slider::Rotary);
 
-    m_pWidthKnob->setTextBoxStyle(Slider::NoTextBox, false, 100, 100);
-    m_pFreqKnob->setTextBoxStyle(Slider::NoTextBox, false, 100, 100);
+    m_pWidthKnob->setTextBoxStyle(Slider::TextBoxAbove, false, 64, 16);
+    m_pFreqKnob->setTextBoxStyle(Slider::TextBoxAbove, false, 64, 16);
+
+    m_pWidthKnob->setTextValueSuffix(" s");
+    m_pFreqKnob->setTextValueSuffix(" Hz");
 
     m_pWidthKnobAttachment  = std::make_unique<AudioProcessorValueTreeState::SliderAttachment>(processor.getState(), "width", *m_pWidthKnob);
     m_pFreqKnobAttachment   = std::make_unique<AudioProcessorValueTreeState::SliderAttachment>(processor.getState(), "freq", *m_pFreqKnob);
@@ -49,9 +52,12 @@ void VibratoAudioProcessorEditor::paint (Graphics& g)
     int width = 100;
     g.setColour (Colours::white);
     g.setFont (15.0f);
-    g.drawText("Width", width, (getHeight() / 2) + 4, width, width, Justification::centred, false);
-    g.drawText("LFO Frequency", (getWidth() / 2) - (width/2), (getHeight() / 2) + 4, width, width, Justification::centred, false);
-    g.drawText("Bypass", getWidth() - width, (getHeight() / 2) - (width / 2), width, width, Justification::centred, false);
+    auto widthName = processor.getState().getParameter("width")->name;
+    auto freqName = processor.getState().getParameter("freq")->name;
+    auto bypassName = processor.getState().getParameter("bypass")->name;
+    g.drawText(widthName, width, (getHeight() / 2) + 4, width, width, Justification::centred, false);
+    g.drawText(freqName, (getWidth() / 2) - (width/2), (getHeight() / 2) + 4, width, width, Justification::centred, false);
+    g.drawText(bypassName, getWidth() - width, (getHeight() / 2) - (width / 2), width, width, Justification::centred, false);
 }
 
 void VibratoAudioProcessorEditor::resized()

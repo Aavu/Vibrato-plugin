@@ -62,9 +62,14 @@ private:
     void parameterChanged (const String& parameterID, float newValue) override;
 
     const float m_fMaxModWidthInS;
-    std::atomic<float> m_fWidth;
-    std::atomic<float> m_fFreq;
-    std::atomic<bool> m_bBypass;
+    const float m_fRampLengthInS;
+
+    SmoothedValue<float, ValueSmoothingTypes::Linear>           m_sfWidth;
+    SmoothedValue<float, ValueSmoothingTypes::Multiplicative>   m_sfFreq;
+
+    std::atomic<float>  m_fWidth;
+    std::atomic<float>  m_fFreq;
+    std::atomic<bool>   m_bBypass;
 
     AudioProcessorValueTreeState m_state;
 

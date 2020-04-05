@@ -23,12 +23,12 @@ VibratoAudioProcessor::VibratoAudioProcessor() :
                      #endif
                        ),
 #endif
-     m_fMaxModWidthInS(.01), m_fWidth(0.001), m_fFreq(5), m_bBypass(false),
-m_state(*this, nullptr, "Parameters", {
-    std::make_unique<AudioParameterFloat>("width", "Width", NormalisableRange<float>(0, m_fMaxModWidthInS, 0.0001), m_fWidth),
-    std::make_unique<AudioParameterFloat>("freq", "LFO Frequency", NormalisableRange<float>(0, 20, 0.1), m_fFreq),
-    std::make_unique<AudioParameterBool>("bypass", "Bypass", m_bBypass)
-})
+    m_fMaxModWidthInS(.01), m_fRampLengthInS(.001), m_fWidth(0.001), m_fFreq(5), m_bBypass(false),
+    m_state(*this, nullptr, "Parameters", {
+        std::make_unique<AudioParameterFloat>("width", "Width", NormalisableRange<float>(0, m_fMaxModWidthInS, 0.0001), m_fWidth),
+        std::make_unique<AudioParameterFloat>("freq", "LFO Frequency", NormalisableRange<float>(0, 20, 0.1), m_fFreq),
+        std::make_unique<AudioParameterBool>("bypass", "Bypass", m_bBypass)
+    })
 {
     m_state.addParameterListener("width", this);
     m_state.addParameterListener("freq", this);
@@ -111,9 +111,16 @@ void VibratoAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBloc
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
     m_ppfAudioData = new float*[getTotalNumInputChannels()];
+
+    m_sfWidth.reset(sampleRate, m_fRampLengthInS);
+    m_sfFreq.reset(sampleRate, m_fRampLengthInS);
+
+    m_sfWidth.setCurrentAndTargetValue(m_fWidth);
+    m_sfFreq.setCurrentAndTargetValue(m_fFreq);
+
     m_pCVibrato->initInstance(m_fMaxModWidthInS, (float)sampleRate, getTotalNumInputChannels());
-    m_pCVibrato->setParam(CVibrato::kParamModWidthInS, m_fWidth);
-    m_pCVibrato->setParam(CVibrato::kParamModFreqInHz, m_fFreq);
+    m_pCVibrato->setParam(CVibrato::kParamModWidthInS, m_sfWidth.getTargetValue());
+    m_pCVibrato->setParam(CVibrato::kParamModFreqInHz, m_sfFreq.getTargetValue());
 }
 
 void VibratoAudioProcessor::releaseResources()
@@ -168,13 +175,18 @@ void VibratoAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer
     // Alternatively, you can process the samples with the channels
     // interleaved by keeping the same state.
 
+    m_pCVibrato->setParam(CVibrato::kParamModWidthInS, m_sfWidth.getNextValue() * (float)!m_bBypass);
+    m_pCVibrato->setParam(CVibrato::kParamModFreqInHz, m_sfFreq.getNextValue());
+
+//    std::cout << m_pCVibrato->getParam(CVibrato::kParamModWidthInS) << " " << m_pCVibrato->getParam(CVibrato::kParamModFreqInHz) << std::endl;
+
     for (int channel = 0; channel < totalNumInputChannels; ++channel)
     {
         auto* channelData = buffer.getWritePointer (channel);
         m_ppfAudioData[channel] = channelData;
     }
 
-    m_pCVibrato->process(m_ppfAudioData, m_ppfAudioData, buffer.getNumSamples());
+    m_pCVibrato->process(m_ppfAudioData, m_ppfAudioData, buffer.getNumSamples()); // In-place processing
 }
 
 //==============================================================================
@@ -216,14 +228,11 @@ AudioProcessorValueTreeState &VibratoAudioProcessor::getState() {
 
 void VibratoAudioProcessor::parameterChanged (const String& parameterID, float newValue)  {
     if (parameterID == "width") {
-        m_fWidth = newValue;
-        m_pCVibrato->setParam(CVibrato::kParamModWidthInS, m_fWidth * (float)!m_bBypass);
+        m_sfWidth.setTargetValue(newValue);
     } else if (parameterID == "freq") {
-        m_fFreq = newValue;
-        m_pCVibrato->setParam(CVibrato::kParamModFreqInHz, newValue);
+        m_sfFreq.setTargetValue(newValue);
     } else if (parameterID == "bypass") {
         m_bBypass = (bool) newValue;
-        m_pCVibrato->setParam(CVibrato::kParamModWidthInS, m_fWidth * (float)!m_bBypass);
     }
 }
 
