@@ -12,6 +12,7 @@
 #define __Vibrato_hdr__
 
 #include "ErrorDef.h"
+#include <iostream>
 
 class CLfo;
 template <class T>
@@ -39,8 +40,6 @@ public:
 
         kNumVibratoParams
     };
-    static const int getVersion (const Version_t eVersionIdx);
-    static const char* getBuildDate ();
 
     static Error_t createInstance (CVibrato*& pCVibrato);
     static Error_t destroyInstance (CVibrato*& pCVibrato);

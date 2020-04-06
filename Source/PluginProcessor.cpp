@@ -12,22 +12,37 @@
 #include "PluginEditor.h"
 
 //==============================================================================
-VibratoAudioProcessor::VibratoAudioProcessor()
+VibratoAudioProcessor::VibratoAudioProcessor() :
 #ifndef JucePlugin_PreferredChannelConfigurations
-     : AudioProcessor (BusesProperties()
+     AudioProcessor (BusesProperties()
                      #if ! JucePlugin_IsMidiEffect
                       #if ! JucePlugin_IsSynth
                        .withInput  ("Input",  AudioChannelSet::stereo(), true)
                       #endif
                        .withOutput ("Output", AudioChannelSet::stereo(), true)
                      #endif
-                       )
+                       ),
 #endif
+    m_fMaxModWidthInS(.01), m_fRampLengthInS(3e-4), m_fWidth(0.001), m_fFreq(5), m_bBypass(false),
+    m_state(*this, nullptr, "Parameters", {
+        std::make_unique<AudioParameterFloat>("width", "Width", NormalisableRange<float>(0, m_fMaxModWidthInS, 0.0001), m_fWidth),
+        std::make_unique<AudioParameterFloat>("freq", "LFO Frequency", NormalisableRange<float>(0.1, 20, 0.1), m_fFreq),
+        std::make_unique<AudioParameterBool>("bypass", "Bypass", m_bBypass)
+    })
 {
+    m_state.addParameterListener("width", this);
+    m_state.addParameterListener("freq", this);
+    m_state.addParameterListener("bypass", this);
+
+    CVibrato::createInstance(m_pCVibrato);
 }
 
 VibratoAudioProcessor::~VibratoAudioProcessor()
 {
+    delete[] m_ppfAudioData;
+    m_ppfAudioData = nullptr;
+
+    CVibrato::destroyInstance(m_pCVibrato);
 }
 
 //==============================================================================
@@ -97,6 +112,19 @@ void VibratoAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBloc
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
+    m_ppfAudioData = new float*[getTotalNumInputChannels()];
+
+    m_sfWidth.reset(sampleRate, m_fRampLengthInS);
+    m_sfFreq.reset(sampleRate, m_fRampLengthInS);
+    m_sfBypass.reset(sampleRate, m_fRampLengthInS);
+
+    m_sfWidth.setCurrentAndTargetValue(m_fWidth);
+    m_sfFreq.setCurrentAndTargetValue(m_fFreq);
+    m_sfBypass.setCurrentAndTargetValue(1 - m_bBypass);
+
+    m_pCVibrato->initInstance(m_fMaxModWidthInS, (float)sampleRate, getTotalNumInputChannels());
+    m_pCVibrato->setParam(CVibrato::kParamModWidthInS, m_sfWidth.getTargetValue());
+    m_pCVibrato->setParam(CVibrato::kParamModFreqInHz, m_sfFreq.getTargetValue());
 }
 
 void VibratoAudioProcessor::releaseResources()
@@ -150,12 +178,19 @@ void VibratoAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer
     // the samples and the outer loop is handling the channels.
     // Alternatively, you can process the samples with the channels
     // interleaved by keeping the same state.
+
+    m_pCVibrato->setParam(CVibrato::kParamModWidthInS, m_sfWidth.getNextValue() * m_sfBypass.getNextValue());
+    m_pCVibrato->setParam(CVibrato::kParamModFreqInHz, m_sfFreq.getNextValue());
+
+//    std::cout << m_pCVibrato->getParam(CVibrato::kParamModWidthInS) << " " << m_pCVibrato->getParam(CVibrato::kParamModFreqInHz) << std::endl;
+
     for (int channel = 0; channel < totalNumInputChannels; ++channel)
     {
         auto* channelData = buffer.getWritePointer (channel);
-
-        // ..do something to the data...
+        m_ppfAudioData[channel] = channelData;
     }
+
+    m_pCVibrato->process(m_ppfAudioData, m_ppfAudioData, buffer.getNumSamples()); // In-place processing
 }
 
 //==============================================================================
@@ -175,13 +210,36 @@ void VibratoAudioProcessor::getStateInformation (MemoryBlock& destData)
     // You should use this method to store your parameters in the memory block.
     // You could do that either as raw data, or use the XML or ValueTree classes
     // as intermediaries to make it easy to save and load complex data.
+    auto state = m_state.copyState();
+    std::unique_ptr<XmlElement> xml (state.createXml());
+    copyXmlToBinary(*xml, destData);
 }
 
 void VibratoAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     // You should use this method to restore your parameters from this memory block,
     // whose contents will have been created by the getStateInformation() call.
+    std::unique_ptr<XmlElement> xmlState (getXmlFromBinary (data, sizeInBytes));
+
+    if (xmlState != nullptr)
+        if (xmlState->hasTagName (m_state.state.getType()))
+            m_state.replaceState (ValueTree::fromXml (*xmlState));
 }
+
+AudioProcessorValueTreeState &VibratoAudioProcessor::getState() {
+    return m_state;
+}
+
+void VibratoAudioProcessor::parameterChanged (const String& parameterID, float newValue)  {
+    if (parameterID == "width") {
+        m_sfWidth.setTargetValue(newValue);
+    } else if (parameterID == "freq") {
+        m_sfFreq.setTargetValue(newValue);
+    } else if (parameterID == "bypass") {
+        m_sfBypass.setTargetValue(1 - newValue);
+    }
+}
+
 
 //==============================================================================
 // This creates new instances of the plugin..
