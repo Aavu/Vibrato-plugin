@@ -66,6 +66,7 @@ private:
 
     SmoothedValue<float, ValueSmoothingTypes::Linear>           m_sfWidth;
     SmoothedValue<float, ValueSmoothingTypes::Multiplicative>   m_sfFreq;
+    SmoothedValue<float, ValueSmoothingTypes::Linear>           m_sfBypass;
 
     std::atomic<float>  m_fWidth;
     std::atomic<float>  m_fFreq;
