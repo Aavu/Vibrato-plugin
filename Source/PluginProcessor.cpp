@@ -39,9 +39,6 @@ VibratoAudioProcessor::VibratoAudioProcessor() :
 
 VibratoAudioProcessor::~VibratoAudioProcessor()
 {
-    delete[] m_ppfAudioData;
-    m_ppfAudioData = nullptr;
-
     CVibrato::destroyInstance(m_pCVibrato);
 }
 
@@ -112,7 +109,6 @@ void VibratoAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBloc
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
-    m_ppfAudioData = new float*[getTotalNumInputChannels()];
 
     m_sfWidth.reset(sampleRate, m_fRampLengthInS);
     m_sfFreq.reset(sampleRate, m_fRampLengthInS);
@@ -187,13 +183,16 @@ void VibratoAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer
 
 //    std::cout << m_pCVibrato->getParam(CVibrato::kParamModWidthInS) << " " << m_pCVibrato->getParam(CVibrato::kParamModFreqInHz) << std::endl;
 
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
-    {
-        auto* channelData = buffer.getWritePointer (channel);
-        m_ppfAudioData[channel] = channelData;
-    }
+//    for (int channel = 0; channel < totalNumInputChannels; ++channel)
+//    {
+//        auto* channelData = buffer.getWritePointer (channel);
+//        m_ppfAudioData[channel] = channelData;
+//    }
 
-    m_pCVibrato->process(m_ppfAudioData, m_ppfAudioData, buffer.getNumSamples()); // In-place processing
+    auto **inputBuffer = (float **)buffer.getArrayOfReadPointers();
+    auto **outputBuffer = buffer.getArrayOfWritePointers();
+
+    m_pCVibrato->process(inputBuffer, outputBuffer, buffer.getNumSamples()); // In-place processing
 }
 
 //==============================================================================

@@ -74,8 +74,6 @@ private:
 
     AudioProcessorValueTreeState m_state;
 
-    float** m_ppfAudioData = nullptr;
-
     CVibrato* m_pCVibrato = nullptr;
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (VibratoAudioProcessor)
