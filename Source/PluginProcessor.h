@@ -62,7 +62,8 @@ private:
     void parameterChanged (const String& parameterID, float newValue) override;
 
     const float m_fMaxModWidthInS;
-    const float m_fRampLengthInS;
+    const float m_fWidthRampLengthInS;
+    const float m_fBypassRampLengthInS;
 
     SmoothedValue<float, ValueSmoothingTypes::Linear>           m_sfWidth;
     SmoothedValue<float, ValueSmoothingTypes::Multiplicative>   m_sfFreq;

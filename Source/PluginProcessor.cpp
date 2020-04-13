@@ -23,7 +23,7 @@ VibratoAudioProcessor::VibratoAudioProcessor() :
                      #endif
                        ),
 #endif
-    m_fMaxModWidthInS(.01), m_fRampLengthInS(3e-3), m_fWidth(0.001), m_fFreq(5), m_bBypass(false),
+    m_fMaxModWidthInS(.01), m_fWidthRampLengthInS(9e-3), m_fBypassRampLengthInS(3e-5), m_fWidth(0.001), m_fFreq(5), m_bBypass(false),
     m_state(*this, nullptr, "Parameters", {
         std::make_unique<AudioParameterFloat>("width", "Width", NormalisableRange<float>(0, m_fMaxModWidthInS, 0.0001), m_fWidth),
         std::make_unique<AudioParameterFloat>("freq", "LFO Frequency", NormalisableRange<float>(0.1, 20, 0.1), m_fFreq),
@@ -110,9 +110,9 @@ void VibratoAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBloc
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
 
-    m_sfWidth.reset(sampleRate, m_fRampLengthInS);
-    m_sfFreq.reset(sampleRate, m_fRampLengthInS);
-    m_sfBypass.reset(sampleRate, m_fRampLengthInS);
+    m_sfWidth.reset(sampleRate, m_fWidthRampLengthInS);
+    m_sfFreq.reset(sampleRate, m_fBypassRampLengthInS);
+    m_sfBypass.reset(sampleRate, m_fBypassRampLengthInS);
 
     m_sfWidth.setCurrentAndTargetValue(m_fWidth);
     m_sfFreq.setCurrentAndTargetValue(m_fFreq);
@@ -238,7 +238,7 @@ void VibratoAudioProcessor::parameterChanged (const String& parameterID, float n
     } else if (parameterID == "freq") {
         m_sfFreq.setTargetValue(newValue);
     } else if (parameterID == "bypass") {
-        m_sfBypass.setTargetValue(1 - newValue);
+        m_sfBypass.setTargetValue(1-newValue);
     }
 }
 
