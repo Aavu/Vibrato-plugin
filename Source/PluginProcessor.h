@@ -63,6 +63,7 @@ private:
 
     const float m_fMaxModWidthInS;
     const float m_fWidthRampLengthInS;
+    const float m_fFreqRampLengthInS;
     const float m_fBypassRampLengthInS;
 
     SmoothedValue<float, ValueSmoothingTypes::Linear>           m_sfWidth;
